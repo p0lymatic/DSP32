@@ -171,6 +171,10 @@ static void i2s_tx_task(void *pvParameters)
             if (watermark > RINGBUF_SIZE_BYTES / 2) watermark = RINGBUF_SIZE_BYTES / 2;
 
             if (buffered < watermark) {
+                // Continuous silence to PCM5102A during prebuffering to maintain bit clock & PLL lock
+                memset(s_i2s_out_buf, 0, bytes_needed);
+                size_t written = 0;
+                i2s_dac_write(s_i2s_out_buf, bytes_needed, &written, 20);
                 vTaskDelay(pdMS_TO_TICKS(2));
                 continue;
             }
@@ -193,8 +197,11 @@ static void i2s_tx_task(void *pvParameters)
         }
 
         if (bytes_collected == 0) {
-            // Buffer dry -> stream paused
+            // Buffer dry -> stream paused. Write silence continuously to prevent I2S clock loss and pops
             s_is_buffering = true;
+            memset(s_i2s_out_buf, 0, bytes_needed);
+            size_t written = 0;
+            i2s_dac_write(s_i2s_out_buf, bytes_needed, &written, 20);
             vTaskDelay(pdMS_TO_TICKS(2));
             continue;
         }

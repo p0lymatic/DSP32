@@ -119,7 +119,7 @@ static void print_help(void)
     cdc_printf("  wifi <on|off|toggle|status>          - Control Wi-Fi SoftAP\r\n");
     cdc_printf("  pins [info|set <bck> <din> <ws>|reset] Hardware pinout configuration\r\n");
     cdc_printf("  scope [gain <x>|mode <pre|post>]     - Calibrate oscilloscope sensitivity & tap\r\n");
-    cdc_printf("  oled fps [15-60]                     - Configure OLED display refresh rate\r\n");
+    cdc_printf("  oled [enable|disable|fps <15-60>]   - Configure OLED display status / FPS\r\n");
     cdc_printf("  storage <info|ls|cat|format>         - LittleFS flash storage manager\r\n");
     cdc_printf("=========================================\r\n\r\n");
 }
@@ -929,6 +929,7 @@ static void handle_command(char *line)
             cdc_printf("  I2S WS  : GPIO %d\r\n", cfg->i2s_ws_gpio);
             cdc_printf("  OLED SCL: GPIO %d\r\n", cfg->oled_scl_gpio);
             cdc_printf("  OLED SDA: GPIO %d\r\n", cfg->oled_sda_gpio);
+            cdc_printf("  OLED    : %s\r\n", cfg->oled_enabled ? "Enabled" : "Disabled");
             cdc_printf("  NeoPixel: GPIO %d\r\n", cfg->neopixel_gpio);
             cdc_printf("  BOOT Btn: GPIO %d\r\n", cfg->boot_button_gpio);
             cdc_printf("  Wi-Fi   : SSID '%s' (Ch %d)\r\n", cfg->wifi_ssid, cfg->wifi_channel);
@@ -1005,9 +1006,27 @@ static void handle_command(char *line)
         } else {
             cdc_resp_err("usage: scope [gain <x> | mode <pre|post>]");
         }
-    } else if (strcmp(cmd, "oled") == 0) {
+    } else if (strcmp(cmd, "oled") == 0 || strcmp(cmd, "hw") == 0) {
         char *sub = strtok(NULL, " \t\r\n");
-        if (sub && strcmp(sub, "fps") == 0) {
+        if (strcmp(cmd, "hw") == 0) {
+            if (sub && strcmp(sub, "oled") == 0) {
+                sub = strtok(NULL, " \t\r\n");
+            } else {
+                cdc_resp_err("usage: hw oled <enable|disable|fps <15-60>>");
+                return;
+            }
+        }
+        if (sub && (strcmp(sub, "enable") == 0 || strcmp(sub, "on") == 0 || strcmp(sub, "1") == 0)) {
+            hw_config_t cfg = *hw_config_get();
+            cfg.oled_enabled = true;
+            hw_config_set(&cfg);
+            cdc_resp_ok("oled enabled");
+        } else if (sub && (strcmp(sub, "disable") == 0 || strcmp(sub, "off") == 0 || strcmp(sub, "0") == 0)) {
+            hw_config_t cfg = *hw_config_get();
+            cfg.oled_enabled = false;
+            hw_config_set(&cfg);
+            cdc_resp_ok("oled disabled");
+        } else if (sub && strcmp(sub, "fps") == 0) {
             char *fps_str = strtok(NULL, " \t\r\n");
             if (fps_str) {
                 int fps = atoi(fps_str);
@@ -1023,7 +1042,8 @@ static void handle_command(char *line)
                 cdc_printf("OLED FPS: %d\r\n", hw_config_get()->oled_fps);
             }
         } else {
-            cdc_printf("OLED FPS: %d\r\n", hw_config_get()->oled_fps);
+            const hw_config_t *cfg = hw_config_get();
+            cdc_printf("OLED: %s, FPS: %d\r\n", cfg->oled_enabled ? "Enabled" : "Disabled", cfg->oled_fps);
         }
     } else if (strcmp(cmd, "storage") == 0) {
         char *sub = strtok(NULL, " \t\r\n");

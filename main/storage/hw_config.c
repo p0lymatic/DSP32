@@ -30,6 +30,7 @@ static void set_defaults(void)
     strncpy(s_config.wifi_pass, HW_DEFAULT_WIFI_PASS, sizeof(s_config.wifi_pass) - 1);
     s_config.wifi_pass[sizeof(s_config.wifi_pass) - 1] = '\0';
     s_config.wifi_channel = HW_DEFAULT_WIFI_CHANNEL;
+    s_config.oled_enabled = HW_DEFAULT_OLED_ENABLED;
     s_config.oled_fps = HW_DEFAULT_OLED_FPS;
     s_config.web_scope_fps = HW_DEFAULT_WEB_SCOPE_FPS;
     s_config.scope_gain = HW_DEFAULT_SCOPE_GAIN;
@@ -48,17 +49,17 @@ esp_err_t hw_config_init(void)
         err = nvs_get_blob(handle, NVS_BLOB_KEY, &loaded, &sz);
         if (err == ESP_OK && sz == sizeof(hw_config_t)) {
             s_config = loaded;
-            ESP_LOGI(TAG, "Hardware config loaded from NVS: I2S (BCK=%d, DIN=%d, WS=%d), OLED (SCL=%d, SDA=%d, %d FPS), SCOPE (gain=%.1fx, pre_vol=%d)",
+            ESP_LOGI(TAG, "Hardware config loaded from NVS: I2S (BCK=%d, DIN=%d, WS=%d), OLED (SCL=%d, SDA=%d, enabled=%d, %d FPS), SCOPE (gain=%.1fx, pre_vol=%d)",
                      s_config.i2s_bck_gpio, s_config.i2s_din_gpio, s_config.i2s_ws_gpio,
-                     s_config.oled_scl_gpio, s_config.oled_sda_gpio, s_config.oled_fps,
+                     s_config.oled_scl_gpio, s_config.oled_sda_gpio, (int)s_config.oled_enabled, s_config.oled_fps,
                      s_config.scope_gain, (int)s_config.scope_pre_vol);
         } else {
             ESP_LOGW(TAG, "Hardware config in NVS invalid or size mismatch, using factory defaults");
         }
         nvs_close(handle);
     } else {
-        ESP_LOGI(TAG, "No custom hardware config in NVS, using factory defaults: I2S (BCK=%d, DIN=%d, WS=%d), OLED (%d FPS)",
-                 s_config.i2s_bck_gpio, s_config.i2s_din_gpio, s_config.i2s_ws_gpio, s_config.oled_fps);
+        ESP_LOGI(TAG, "No custom hardware config in NVS, using factory defaults: I2S (BCK=%d, DIN=%d, WS=%d), OLED (enabled=%d, %d FPS)",
+                 s_config.i2s_bck_gpio, s_config.i2s_din_gpio, s_config.i2s_ws_gpio, (int)s_config.oled_enabled, s_config.oled_fps);
     }
 
     return ESP_OK;

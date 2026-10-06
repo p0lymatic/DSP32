@@ -14,6 +14,7 @@
 #include "driver/i2c_master.h"
 
 #include "u8g2.h"
+#include "u8x8.h"
 #include "esp32_hw_i2c.h"
 
 #include "storage/hw_config.h"
@@ -245,6 +246,18 @@ static void oled_task(void *pvParameters)
     char preset_name[32];
 
     while (1) {
+        const hw_config_t *hw_run = hw_config_get();
+        if (hw_run && !hw_run->oled_enabled) {
+            if (s_is_active) {
+                u8g2_ClearDisplay(&s_u8g2);
+                u8g2_SetPowerSave(&s_u8g2, 1);
+                s_is_active = false;
+                ESP_LOGI(TAG, "SSD1306 OLED display disabled, entering power save");
+            }
+            vTaskDelay(pdMS_TO_TICKS(500));
+            continue;
+        }
+
         // If display is not active, attempt probe every 2 seconds
         if (!s_is_active) {
             if (s_i2c_ctx.bus_handle != NULL) {
@@ -305,7 +318,6 @@ static void oled_task(void *pvParameters)
         u8g2_SendBuffer(&s_u8g2);
 
         // Dynamic refresh delay based on configured FPS (15..60)
-        const hw_config_t *hw_run = hw_config_get();
         int target_fps = (hw_run && hw_run->oled_fps >= 15 && hw_run->oled_fps <= 60) ? hw_run->oled_fps : 30;
         int delay_ms = 1000 / target_fps;
         if (delay_ms < 10) delay_ms = 10;
@@ -353,6 +365,10 @@ esp_err_t oled_display_init(void)
 
     // Initial bus init via u8x8 MSG BYTE INIT
     u8x8_byte_esp32_hw_i2c(u8g2_GetU8x8(&s_u8g2), U8X8_MSG_BYTE_INIT, 0, NULL);
+
+    if (!hw->oled_enabled) {
+        ESP_LOGI(TAG, "SSD1306 OLED disabled by configuration");
+    }
 
     s_is_active = false;
 

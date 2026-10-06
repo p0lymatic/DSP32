@@ -742,6 +742,7 @@ static esp_err_t api_preferences_get_handler(httpd_req_t *req)
     cJSON_AddStringToObject(root, "wifi_ssid", cfg->wifi_ssid);
     cJSON_AddStringToObject(root, "wifi_pass", cfg->wifi_pass);
     cJSON_AddNumberToObject(root, "wifi_channel", cfg->wifi_channel);
+    cJSON_AddBoolToObject(root, "oled_enabled", cfg->oled_enabled);
     cJSON_AddNumberToObject(root, "oled_fps", cfg->oled_fps);
     cJSON_AddNumberToObject(root, "web_scope_fps", cfg->web_scope_fps);
     cJSON_AddNumberToObject(root, "scope_gain", (double)cfg->scope_gain);
@@ -824,6 +825,7 @@ static esp_err_t api_preferences_post_handler(httpd_req_t *req)
     }
 
     // Dynamic display & visualizer calibration parameters
+    if ((item = cJSON_GetObjectItem(root, "oled_enabled"))) cfg.oled_enabled = cJSON_IsTrue(item);
     if ((item = cJSON_GetObjectItem(root, "oled_fps")) && cJSON_IsNumber(item)) cfg.oled_fps = (uint8_t)item->valueint;
     if ((item = cJSON_GetObjectItem(root, "web_scope_fps")) && cJSON_IsNumber(item)) cfg.web_scope_fps = (uint8_t)item->valueint;
     if ((item = cJSON_GetObjectItem(root, "scope_gain")) && cJSON_IsNumber(item)) cfg.scope_gain = (float)item->valuedouble;
